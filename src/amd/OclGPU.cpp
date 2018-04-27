@@ -7,6 +7,7 @@
  * Copyright 2017-2018 XMR-Stak    <https://github.com/fireice-uk>, <https://github.com/psychocrypt>
  * Copyright 2018      Lee Clagett <https://github.com/vtnerd>
  * Copyright 2016-2018 XMRig       <https://github.com/xmrig>, <support@xmrig.com>
+ * Copyright 2018      Team-Hycon  <https://github.com/Team-Hycon>
  *
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -41,6 +42,7 @@
 #include "core/Config.h"
 #include "crypto/CryptoNight_constants.h"
 #include "cryptonight.h"
+#include "common/net/Protocol.h"
 
 
 constexpr const char *kSetKernelArgErr = "Error %s when calling clSetKernelArg for kernel %d, argument %d.";
@@ -136,7 +138,7 @@ size_t InitOpenCLGpu(int index, cl_context opencl_ctx, GpuContext* ctx, const ch
         return OCL_ERR_API;
     }
 
-    ctx->InputBuffer = OclLib::createBuffer(opencl_ctx, CL_MEM_READ_ONLY, 88, nullptr, &ret);
+    ctx->InputBuffer = OclLib::createBuffer(opencl_ctx, CL_MEM_READ_ONLY, LEN::BLOB, nullptr, &ret);
     if (ret != CL_SUCCESS) {
         LOG_ERR("Error %s when calling clCreateBuffer to create input buffer.", err_to_str(ret));
         return OCL_ERR_API;
@@ -457,20 +459,17 @@ size_t InitOpenCL(GpuContext* ctx, size_t num_gpus, xmrig::Config *config)
     return OCL_ERR_SUCCESS;
 }
 
-size_t XMRSetJob(GpuContext* ctx, uint8_t* input, size_t input_len, uint64_t target, uint32_t variant)
+size_t XMRSetJob(GpuContext* ctx, uint8_t* input, size_t input_len, uint64_t target, uint32_t variant, uint32_t moneroNonce)
 {
     cl_int ret;
 
-    if (input_len > 84) {
+    if (input_len > LEN::BLOB) {
         return OCL_ERR_BAD_PARAMS;
     }
 
-    input[input_len] = 0x01;
-    memset(input + input_len + 1, 0, 88 - input_len - 1);
-    
     size_t numThreads = ctx->rawIntensity;
 
-    if ((ret = OclLib::enqueueWriteBuffer(ctx->CommandQueues, ctx->InputBuffer, CL_TRUE, 0, 88, input, 0, nullptr, nullptr)) != CL_SUCCESS) {
+    if ((ret = OclLib::enqueueWriteBuffer(ctx->CommandQueues, ctx->InputBuffer, CL_TRUE, 0, LEN::BLOB, input, 0, nullptr, nullptr)) != CL_SUCCESS) {
         LOG_ERR("Error %s when calling clEnqueueWriteBuffer to fill input buffer.", err_to_str(ret));
         return OCL_ERR_API;
     }
@@ -511,9 +510,13 @@ size_t XMRSetJob(GpuContext* ctx, uint8_t* input, size_t input_len, uint64_t tar
         return OCL_ERR_API;
     }
 
-    // input
-    if ((ret = OclLib::setKernelArg(ctx->Kernels[cn_kernel_offset], 4, sizeof(cl_mem), &ctx->InputBuffer)) != CL_SUCCESS) {
-        LOG_ERR(kSetKernelArgErr, err_to_str(ret), cn_kernel_offset, 4);
+    if ((ret = OclLib::setKernelArg(ctx->Kernels[1 + cn_kernel_offset], 4, sizeof(cl_mem), &ctx->InputBuffer)) != CL_SUCCESS) {
+        LOG_ERR(kSetKernelArgErr, err_to_str(ret), 1 + cn_kernel_offset, 4);
+        return OCL_ERR_API;
+    }
+    
+        if ((ret = OclLib::setKernelArg(ctx->Kernels[1 + cn_kernel_offset], 5, sizeof(cl_uint), &moneroNonce)) != CL_SUCCESS) {
+        LOG_ERR(kSetKernelArgErr, err_to_str(ret), 1 + cn_kernel_offset, 5);
         return OCL_ERR_API;
     }
 
