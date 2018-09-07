@@ -245,9 +245,11 @@ std::vector<GpuContext> getAMDDevices(int index, xmrig::Config *config)
 
     for (cl_uint i = 0; i < num_devices; i++) {
         OclLib::getDeviceInfo(device_list[i], CL_DEVICE_VENDOR, sizeof(buf), buf);
+        #if !defined(__APPLE__)
         if (strstr(buf, "Advanced Micro Devices") == nullptr) {
             continue;
         }
+        #endif
 
         GpuContext ctx;
         ctx.deviceIdx = i;
@@ -355,7 +357,9 @@ size_t InitOpenCL(GpuContext* ctx, size_t num_gpus, xmrig::Config *config)
     OclLib::getPlatformIDs(entries, platforms, nullptr);
 
     char buf[256] = { 0 };
+    #if !defined(__APPLE__)
     OclLib::getPlatformInfo(platforms[platform_idx], CL_PLATFORM_VENDOR, sizeof(buf), buf, nullptr);
+    #endif
 
     if (strstr(buf, "Advanced Micro Devices") == nullptr) {
         LOG_WARN("using non AMD device: %s", buf);
@@ -510,13 +514,13 @@ size_t XMRSetJob(GpuContext* ctx, uint8_t* input, size_t input_len, uint64_t tar
         return OCL_ERR_API;
     }
 
-    if ((ret = OclLib::setKernelArg(ctx->Kernels[1 + cn_kernel_offset], 4, sizeof(cl_mem), &ctx->InputBuffer)) != CL_SUCCESS) {
-        LOG_ERR(kSetKernelArgErr, err_to_str(ret), 1 + cn_kernel_offset, 4);
+    if ((ret = OclLib::setKernelArg(ctx->Kernels[cn_kernel_offset], 4, sizeof(cl_mem), &ctx->InputBuffer)) != CL_SUCCESS) {
+        LOG_ERR(kSetKernelArgErr, err_to_str(ret), cn_kernel_offset, 4);
         return OCL_ERR_API;
     }
     
-        if ((ret = OclLib::setKernelArg(ctx->Kernels[1 + cn_kernel_offset], 5, sizeof(cl_uint), &moneroNonce)) != CL_SUCCESS) {
-        LOG_ERR(kSetKernelArgErr, err_to_str(ret), 1 + cn_kernel_offset, 5);
+    if ((ret = OclLib::setKernelArg(ctx->Kernels[cn_kernel_offset], 5, sizeof(cl_uint), &moneroNonce)) != CL_SUCCESS) {
+        LOG_ERR(kSetKernelArgErr, err_to_str(ret), cn_kernel_offset, 5);
         return OCL_ERR_API;
     }
 

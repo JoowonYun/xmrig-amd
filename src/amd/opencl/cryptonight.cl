@@ -525,7 +525,6 @@ R"===(
         tweak1_2.s1 = p; \
         tweak1_2 ^= as_uint2(states[24]);
 
-
 __attribute__((reqd_work_group_size(WORKSIZE, 1, 1)))
 __kernel void cn1_monero(__global uint4 *Scratchpad, __global ulong *states, ulong Threads, uint variant, __global ulong *input, uint moneroNonce)
 {
@@ -616,7 +615,7 @@ __kernel void cn1_monero(__global uint4 *Scratchpad, __global ulong *states, ulo
 R"===(
 
 __attribute__((reqd_work_group_size(WORKSIZE, 1, 1)))
-__kernel void cn1_msr(__global uint4 *Scratchpad, __global ulong *states, ulong Threads, uint variant, __global ulong *input)
+__kernel void cn1_msr(__global uint4 *Scratchpad, __global ulong *states, ulong Threads, uint variant, __global ulong *input, uint moneroNonce)
 {
 #   if (ALGO == CRYPTONIGHT)
     ulong a[2], b[2];
@@ -656,7 +655,7 @@ __kernel void cn1_msr(__global uint4 *Scratchpad, __global ulong *states, ulong 
         b[1] = states[3] ^ states[7];
 
         b_x = ((uint4 *)b)[0];
-        VARIANT1_INIT();
+        VARIANT1_INIT(moneroNonce);
     }
 
     mem_fence(CLK_LOCAL_MEM_FENCE);
@@ -702,7 +701,7 @@ __kernel void cn1_msr(__global uint4 *Scratchpad, __global ulong *states, ulong 
 R"===(
 
 __attribute__((reqd_work_group_size(WORKSIZE, 1, 1)))
-__kernel void cn1_tube(__global uint4 *Scratchpad, __global ulong *states, ulong Threads, uint variant, __global ulong *input)
+__kernel void cn1_tube(__global uint4 *Scratchpad, __global ulong *states, ulong Threads, uint variant, __global ulong *input, uint moneroNonce)
 {
 #   if (ALGO == CRYPTONIGHT_HEAVY)
     ulong a[2], b[2];
@@ -742,7 +741,7 @@ __kernel void cn1_tube(__global uint4 *Scratchpad, __global ulong *states, ulong
         b[1] = states[3] ^ states[7];
 
         b_x = ((uint4 *)b)[0];
-        VARIANT1_INIT();
+        VARIANT1_INIT(moneroNonce);
     }
 
     mem_fence(CLK_LOCAL_MEM_FENCE);
